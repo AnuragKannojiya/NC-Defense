@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>National Cyber Defense | Security Awareness Training Platform</title>
+    <meta name="description" content="India's national-scale Security Awareness Training Platform with real-time analytics, interactive simulations, and comprehensive cybersecurity education.">
+    <meta name="keywords" content="cybersecurity, training, phishing, social engineering, national security, awareness, India, CERT-In">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+</head>
+<body>
+    <!-- Particle Background -->
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loader-content">
+            <div class="loader-shield">
+                <svg width="80" height="80" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 22S2 16 2 8V5L12 2L22 5V8C22 16 12 22 12 22Z" stroke="url(#lg)" stroke-width="1.5"/>
+                    <path d="M9 12l2 2 4-4" stroke="url(#lg)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs><linearGradient id="lg" x1="2" y1="2" x2="22" y2="22"><stop stop-color="#00F0FF"/><stop offset="1" stop-color="#7C3AED"/></linearGradient></defs>
+                </svg>
+            </div>
+            <h2 class="loader-title">NATIONAL CYBER DEFENSE</h2>
+            <p class="loader-subtitle">Establishing Secure Connection...</p>
+            <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+        </div>
+    </div>
+
+    <!-- Auth Container (shown when not logged in) -->
+    <div id="auth-container" class="auth-container" style="display:none;"></div>
+
+    <!-- App Container (shown when logged in) -->
+    <div id="app" class="app-container" style="display:none;">
+        <aside id="sidebar-root" class="glass-sidebar"></aside>
+        <main class="main-content">
+            <header id="navbar-root" class="glass-navbar"></header>
+            <div id="toast-container" class="toast-container"></div>
+            <div id="view-root" class="view-content"></div>
+        </main>
+    </div>
+
+    <!-- App Entry Point -->
+    <script type="module" src="js/app.js?v=6"></script>
+</body>
+</html>

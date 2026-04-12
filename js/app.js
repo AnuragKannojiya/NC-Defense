@@ -1,8 +1,8 @@
 // =====================================================================
 // NCD Platform — Core Application (Router, Auth, Particles)
 // =====================================================================
-import { initFirebaseAuth, getCurrentUser } from './services/auth.js';
-import { getUserProfile, createUserProfile, updateUserProfile } from './services/db.js';
+import { initFirebaseAuth, getCurrentUser } from './services/auth.js?v=6';
+import { getUserProfile, createUserProfile, updateUserProfile } from './services/db.js?v=6';
 import { Sidebar } from './components/Sidebar.js';
 import { Navbar } from './components/Navbar.js';
 import { showToast } from './components/Toast.js';

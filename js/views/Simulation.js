@@ -329,6 +329,20 @@ export const Simulation = {
     },
 
     afterRender: (profile, _, uid) => {
+        // Helper to mark tab completed and update score counter in real-time
+        function markTabCompleted(simKey) {
+            const tab = document.querySelector(`#sim-tabs [data-sim="${simKey}"]`);
+            if (tab && !tab.innerHTML.includes('✓')) {
+                tab.innerHTML += ' <span style="color:var(--success);margin-left:4px">✓</span>';
+            }
+            const count = Array.from(document.querySelectorAll('#sim-tabs .tab')).filter(t => t.innerHTML.includes('✓')).length;
+            const overallEl = document.getElementById('sim-overall-score');
+            if (overallEl) {
+                overallEl.textContent = `${count} / 5`;
+                if (count === 5) overallEl.style.color = 'var(--success)';
+            }
+        }
+
         // Tab Navigation
         const tabs = document.querySelectorAll('#sim-tabs .tab');
         tabs.forEach(tab => {
@@ -337,7 +351,10 @@ export const Simulation = {
                 tab.classList.add('active');
                 document.querySelectorAll('.sim-panel').forEach(p => p.style.display = 'none');
                 const target = document.getElementById('sim-' + tab.dataset.sim);
-                if (target) target.style.display = 'block';
+                if (target) {
+                    target.style.display = 'block';
+                    target.classList.add('fade-in-up');
+                }
             });
         });
 
@@ -358,7 +375,7 @@ export const Simulation = {
                     if (emailCounter) emailCounter.textContent = `Found: ${emailFound} / ${totalEmailFlags}`;
                     showToast(`Detected: ${flag.dataset.flag}`, 'success');
 
-                    if (emailFound >= 4 && submitEmailBtn) {
+                    if (emailFound >= 3 && submitEmailBtn) {
                         submitEmailBtn.style.display = 'inline-flex';
                     }
                     if (emailFound >= totalEmailFlags) {
@@ -370,10 +387,25 @@ export const Simulation = {
         });
 
         submitEmailBtn?.addEventListener('click', async () => {
+            submitEmailBtn.disabled = true;
             const score = Math.round((emailFound / totalEmailFlags) * 100);
             await saveSimulation(uid, 'phishing_email', score);
+            markTabCompleted('email');
             showToast(`Email Threat Sim Complete: ${score}% (+${score*5} pts) 🎉`, 'success');
-            setTimeout(() => { window.location.hash = '#/'; }, 1200);
+            submitEmailBtn.outerHTML = `
+                <div class="card fade-in-up" style="max-width:560px;margin:24px auto 0;text-align:center;padding:24px;border:1px solid rgba(0,255,136,0.3);background:var(--success-muted);">
+                    <div style="font-size:2.5rem;margin-bottom:8px">🛡️</div>
+                    <h3 style="color:var(--success);margin-bottom:6px">Phishing Reconnaissance Passed!</h3>
+                    <p style="color:var(--text-primary);font-size:0.88rem;margin-bottom:16px">Score: ${score}% • +${score*5} points awarded to your security profile.</p>
+                    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+                        <button class="btn btn-primary" id="go-next-sms">Next Simulation: Smishing SMS →</button>
+                        <a href="#/" class="btn btn-secondary">Dashboard</a>
+                    </div>
+                </div>
+            `;
+            document.getElementById('go-next-sms')?.addEventListener('click', () => {
+                document.querySelector('#sim-tabs [data-sim="sms"]')?.click();
+            });
         });
 
         // -------------------------------------------------------------
@@ -422,9 +454,25 @@ export const Simulation = {
                         <button id="finish-sms-btn" class="btn btn-primary btn-sm mt-12">Claim Points (+500 pts) →</button>
                     `;
                     document.getElementById('finish-sms-btn')?.addEventListener('click', async () => {
+                        const finishBtn = document.getElementById('finish-sms-btn');
+                        if (finishBtn) finishBtn.disabled = true;
                         await saveSimulation(uid, 'smishing_sms', 100);
+                        markTabCompleted('sms');
                         showToast('Smishing SMS Simulation Passed (+500 pts)!', 'success');
-                        setTimeout(() => { window.location.hash = '#/'; }, 1000);
+                        smsResultBox.innerHTML = `
+                            <div style="text-align:center;padding:12px;">
+                                <div style="font-size:2rem;margin-bottom:8px">📱</div>
+                                <h4 style="color:var(--success);margin-bottom:6px">Smishing Vector Defeated (+500 pts)!</h4>
+                                <p style="color:var(--text-primary);font-size:0.85rem;margin-bottom:14px">Logged and reported to CERT-In registry.</p>
+                                <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+                                    <button class="btn btn-primary" id="go-next-web">Next: Fake Website →</button>
+                                    <a href="#/" class="btn btn-secondary">Dashboard</a>
+                                </div>
+                            </div>
+                        `;
+                        document.getElementById('go-next-web')?.addEventListener('click', () => {
+                            document.querySelector('#sim-tabs [data-sim="website"]')?.click();
+                        });
                     });
                 } else if (choice === 'click') {
                     btn.classList.add('selected-wrong');
@@ -474,9 +522,24 @@ export const Simulation = {
         });
 
         submitWebBtn?.addEventListener('click', async () => {
+            submitWebBtn.disabled = true;
             await saveSimulation(uid, 'fake_website', 100);
+            markTabCompleted('website');
             showToast('Takedown Filed! Fake Website Neutralized (+500 pts) 🌐', 'success');
-            setTimeout(() => { window.location.hash = '#/'; }, 1000);
+            submitWebBtn.outerHTML = `
+                <div class="card fade-in-up" style="max-width:560px;margin:20px auto 0;text-align:center;padding:24px;border:1px solid rgba(0,255,136,0.3);background:var(--success-muted);">
+                    <div style="font-size:2.5rem;margin-bottom:8px">🌐</div>
+                    <h3 style="color:var(--success);margin-bottom:6px">Fake Website Neutralized!</h3>
+                    <p style="color:var(--text-primary);font-size:0.88rem;margin-bottom:16px">CERT-In takedown notice submitted. Subdomain sinkholed • +500 points awarded.</p>
+                    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+                        <button class="btn btn-primary" id="go-next-vish">Next Simulation: Vishing Call →</button>
+                        <a href="#/" class="btn btn-secondary">Dashboard</a>
+                    </div>
+                </div>
+            `;
+            document.getElementById('go-next-vish')?.addEventListener('click', () => {
+                document.querySelector('#sim-tabs [data-sim="vishing"]')?.click();
+            });
         });
 
         // -------------------------------------------------------------
@@ -523,9 +586,25 @@ export const Simulation = {
                             <button id="finish-vish-btn" class="btn btn-primary btn-lg">Claim Victory (+500 pts)</button>
                         `;
                         document.getElementById('finish-vish-btn')?.addEventListener('click', async () => {
+                            const finishBtn = document.getElementById('finish-vish-btn');
+                            if (finishBtn) finishBtn.disabled = true;
                             await saveSimulation(uid, 'vishing_call', 100);
+                            markTabCompleted('vishing');
                             showToast('Vishing Defense Passed (+500 pts)! 📞', 'success');
-                            setTimeout(() => { window.location.hash = '#/'; }, 1000);
+                            vishResult.innerHTML = `
+                                <div style="text-align:center;padding:12px;">
+                                    <div style="font-size:2rem;margin-bottom:8px">📞</div>
+                                    <h3 style="color:var(--success);margin-bottom:6px">Vishing Defense Mastered (+500 pts)!</h3>
+                                    <p style="color:var(--text-primary);font-size:0.85rem;margin-bottom:14px">Credential theft foiled and attacker IP blacklisted.</p>
+                                    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+                                        <button class="btn btn-primary" id="go-next-usb">Next: USB Drop →</button>
+                                        <a href="#/" class="btn btn-secondary">Dashboard</a>
+                                    </div>
+                                </div>
+                            `;
+                            document.getElementById('go-next-usb')?.addEventListener('click', () => {
+                                document.querySelector('#sim-tabs [data-sim="usb"]')?.click();
+                            });
                         });
                     }
                 } else if (action === 'fail2') {
@@ -576,9 +655,22 @@ export const Simulation = {
                         <button id="finish-usb-btn" class="btn btn-primary btn-lg">Claim Defense Points (+500 pts) →</button>
                     `;
                     document.getElementById('finish-usb-btn')?.addEventListener('click', async () => {
+                        const finishBtn = document.getElementById('finish-usb-btn');
+                        if (finishBtn) finishBtn.disabled = true;
                         await saveSimulation(uid, 'usb_drop', 100);
+                        markTabCompleted('usb');
                         showToast('USB Baiting Simulation Complete (+500 pts)! 💾', 'success');
-                        setTimeout(() => { window.location.hash = '#/'; }, 1000);
+                        usbResult.innerHTML = `
+                            <div style="text-align:center;padding:16px;">
+                                <div style="font-size:3rem;margin-bottom:12px">🎖️</div>
+                                <h3 style="color:var(--success);margin-bottom:8px">All Threat Vectors Mastered (+500 pts)!</h3>
+                                <p style="color:var(--text-primary);font-size:0.9rem;margin-bottom:16px">You have completed all 5 physical and digital simulations. Your tactical readiness is at 100%.</p>
+                                <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+                                    <a href="#/certificate" class="btn btn-primary btn-lg">View Official Certificate 🎓</a>
+                                    <a href="#/" class="btn btn-secondary btn-lg">Dashboard</a>
+                                </div>
+                            </div>
+                        `;
                     });
                 } else {
                     btn.classList.add('selected-wrong');

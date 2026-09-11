@@ -1,13 +1,17 @@
-// Chart.js Wrapper Components
+// Chart.js Wrapper Components — Safe instance recycling and error resilience
 export function createDoughnutChart(canvasId, label, value, max = 100) {
+    if (typeof Chart === 'undefined') return null;
     const ctx = document.getElementById(canvasId);
-    if (!ctx) return;
+    if (!ctx) return null;
+    const existing = Chart.getChart(ctx);
+    if (existing) existing.destroy();
+
     return new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: ['Completed', 'Remaining'],
             datasets: [{
-                data: [value, max - value],
+                data: [value, Math.max(0, max - value)],
                 backgroundColor: ['#00F0FF', 'rgba(255,255,255,0.05)'],
                 borderWidth: 0,
                 cutout: '80%'
@@ -22,8 +26,12 @@ export function createDoughnutChart(canvasId, label, value, max = 100) {
 }
 
 export function createRadarChart(canvasId, labels, data) {
+    if (typeof Chart === 'undefined') return null;
     const ctx = document.getElementById(canvasId);
-    if (!ctx) return;
+    if (!ctx) return null;
+    const existing = Chart.getChart(ctx);
+    if (existing) existing.destroy();
+
     return new Chart(ctx, {
         type: 'radar',
         data: {
@@ -31,7 +39,7 @@ export function createRadarChart(canvasId, labels, data) {
             datasets: [{
                 label: 'Your Score',
                 data: data,
-                backgroundColor: 'rgba(0, 240, 255, 0.1)',
+                backgroundColor: 'rgba(0, 240, 255, 0.12)',
                 borderColor: '#00F0FF',
                 borderWidth: 2,
                 pointBackgroundColor: '#00F0FF',
@@ -58,8 +66,12 @@ export function createRadarChart(canvasId, labels, data) {
 }
 
 export function createBarChart(canvasId, labels, datasets) {
+    if (typeof Chart === 'undefined') return null;
     const ctx = document.getElementById(canvasId);
-    if (!ctx) return;
+    if (!ctx) return null;
+    const existing = Chart.getChart(ctx);
+    if (existing) existing.destroy();
+
     return new Chart(ctx, {
         type: 'bar',
         data: { labels, datasets },
@@ -76,8 +88,12 @@ export function createBarChart(canvasId, labels, datasets) {
 }
 
 export function createLineChart(canvasId, labels, datasets) {
+    if (typeof Chart === 'undefined') return null;
     const ctx = document.getElementById(canvasId);
-    if (!ctx) return;
+    if (!ctx) return null;
+    const existing = Chart.getChart(ctx);
+    if (existing) existing.destroy();
+
     return new Chart(ctx, {
         type: 'line',
         data: { labels, datasets },

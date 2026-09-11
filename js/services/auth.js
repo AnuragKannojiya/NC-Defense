@@ -9,7 +9,7 @@ let _GoogleProvider = null;
 let _demoUser = null;
 let _onAuthChangeCb = null;
 
-// ---- Bootstrap Firebase SDK dynamically from CDN ----
+// ---- Bootstrap Firebase SDK dynamically from Google CDN ----
 async function ensureFirebase() {
     if (_fbAuth) return _fbAuth;
     try {
@@ -28,13 +28,13 @@ async function ensureFirebase() {
 }
 
 // Friendly error message translator for Firebase codes
-function translateFirebaseError(err) {
+export function translateFirebaseError(err) {
     const code = err.code || '';
     if (code === 'auth/configuration-not-found') {
-        return 'Firebase Auth is not enabled in your Google Cloud / Firebase console for project "' + firebaseConfig.projectId + '". Please enable Email/Password & Google in Firebase Console > Authentication > Sign-in method.';
+        return `Firebase Auth provider is not enabled in your Google Cloud / Firebase console for project "${firebaseConfig.projectId}". Please enable Email/Password & Google in Firebase Console > Authentication > Sign-in method.`;
     }
     if (code === 'auth/unauthorized-domain') {
-        return 'This domain (' + window.location.hostname + ') is not authorized for OAuth in Firebase Console. Add it in Firebase Console > Authentication > Settings > Authorized Domains.';
+        return `This domain (${window.location.hostname}) is not authorized for OAuth in Firebase Console. Add "${window.location.hostname}" in Firebase Console > Authentication > Settings > Authorized Domains.`;
     }
     if (code === 'auth/popup-closed-by-user') {
         return 'Google sign-in popup was closed before completing.';
@@ -107,7 +107,7 @@ export async function signInWithGoogle() {
         const cred = await signInWithPopup(_fbAuth, _GoogleProvider);
         localStorage.removeItem('ncd_demo_user');
         _demoUser = null;
-        if (_onAuthChangeCb) _onAuthChangeCb(cred.user);
+        // Firebase onAuthStateChanged handles routing update
         return cred.user;
     } catch (err) {
         console.error('Google OAuth error:', err);
@@ -127,7 +127,7 @@ export async function signInWithEmail(email, password) {
         const cred = await signInWithEmailAndPassword(_fbAuth, cleanEmail, password);
         localStorage.removeItem('ncd_demo_user');
         _demoUser = null;
-        if (_onAuthChangeCb) _onAuthChangeCb(cred.user);
+        // Firebase onAuthStateChanged handles routing update
         return cred.user;
     } catch (err) {
         console.error('Email sign in error:', err);
@@ -150,7 +150,7 @@ export async function signUpWithEmail(email, password, displayName, department =
         }
         localStorage.removeItem('ncd_demo_user');
         _demoUser = null;
-        if (_onAuthChangeCb) _onAuthChangeCb(cred.user);
+        // Firebase onAuthStateChanged handles routing update
         return cred.user;
     } catch (err) {
         console.error('Email registration error:', err);
@@ -162,15 +162,17 @@ export async function signUpWithEmail(email, password, displayName, department =
 export async function signInDemo() {
     _demoUser = {
         uid: 'demo_agent_' + Date.now(),
-        email: 'demo@ncd.gov.in',
-        displayName: 'Special Agent (Demo)',
+        email: 'agent.demo@ncd.gov.in',
+        displayName: 'Commander Aryan Sharma',
         department: 'Cyber Operations Division',
-        role: 'agent',
+        role: 'Chief Security Officer',
         photoURL: null,
-        clearance: 'Level 3 (Secret)'
+        clearance: 'Level 3 (Top Secret)'
     };
     localStorage.setItem('ncd_demo_user', JSON.stringify(_demoUser));
-    if (_onAuthChangeCb) _onAuthChangeCb(_demoUser);
+    if (_onAuthChangeCb) {
+        _onAuthChangeCb(_demoUser);
+    }
     return _demoUser;
 }
 

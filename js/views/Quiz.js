@@ -72,8 +72,40 @@ export const Quiz = {
             document.getElementById('q-prog-bar').style.width='100%';
             document.getElementById('q-prog-text').textContent='Assessment Complete';
             await saveQuizScore(uid, 'Security Awareness Assessment', score, QUESTIONS.length);
-            area.innerHTML = `<div class="card" style="text-align:center;padding:48px"><div style="font-size:4rem;margin-bottom:16px">${passed?'🏆':'📋'}</div><h2 class="mb-16">Assessment ${passed?'Passed!':'Complete'}</h2><p style="color:var(--text-secondary);margin-bottom:24px">Score: <strong style="color:${passed?'var(--success)':'var(--danger)'}">${score}/${QUESTIONS.length} (${pct}%)</strong></p><div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:32px"><div class="card" style="padding:20px 32px;text-align:center"><div style="font-size:2rem;font-weight:800;color:var(--accent-cyan)">${score}</div><div style="font-size:0.75rem;color:var(--text-muted)">Correct</div></div><div class="card" style="padding:20px 32px;text-align:center"><div style="font-size:2rem;font-weight:800;color:var(--danger)">${QUESTIONS.length-score}</div><div style="font-size:0.75rem;color:var(--text-muted)">Incorrect</div></div><div class="card" style="padding:20px 32px;text-align:center"><div style="font-size:2rem;font-weight:800;color:var(--warning)">${score*50}</div><div style="font-size:0.75rem;color:var(--text-muted)">Points</div></div></div>${passed?'<span class="badge badge-success" style="font-size:0.9rem;padding:8px 20px">✓ Eligible for Certification</span>':'<span class="badge badge-warning" style="font-size:0.9rem;padding:8px 20px">Need 80%+ for certification</span>'}<div style="margin-top:32px;display:flex;gap:12px;justify-content:center">${passed?'<a href="#/certificate" class="btn btn-primary">View Certificate</a>':''}<a href="#/" class="btn btn-secondary">Dashboard</a></div></div>`;
-            showToast(`Quiz: ${pct}% — +${score*50} pts`, passed?'success':'warning');
+            area.innerHTML = `
+                <div class="card fade-in-up" style="text-align:center;padding:48px">
+                    <div style="font-size:4rem;margin-bottom:16px">${passed?'🏆':'📋'}</div>
+                    <h2 class="mb-16">Assessment ${passed?'Passed!':'Complete'}</h2>
+                    <p style="color:var(--text-secondary);margin-bottom:24px">
+                        Final Score: <strong style="color:${passed?'var(--success)':'var(--danger)'}">${score}/${QUESTIONS.length} (${pct}%)</strong>
+                    </p>
+                    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:32px">
+                        <div class="card" style="padding:20px 32px;text-align:center">
+                            <div style="font-size:2rem;font-weight:800;color:var(--accent-cyan)">${score}</div>
+                            <div style="font-size:0.75rem;color:var(--text-muted)">Correct</div>
+                        </div>
+                        <div class="card" style="padding:20px 32px;text-align:center">
+                            <div style="font-size:2rem;font-weight:800;color:var(--danger)">${QUESTIONS.length-score}</div>
+                            <div style="font-size:0.75rem;color:var(--text-muted)">Incorrect</div>
+                        </div>
+                        <div class="card" style="padding:20px 32px;text-align:center">
+                            <div style="font-size:2rem;font-weight:800;color:var(--warning)">${score*50}</div>
+                            <div style="font-size:0.75rem;color:var(--text-muted)">Points</div>
+                        </div>
+                    </div>
+                    ${passed ? '<span class="badge badge-success" style="font-size:0.9rem;padding:8px 20px">✓ Eligible for National Certification</span>' : '<span class="badge badge-warning" style="font-size:0.9rem;padding:8px 20px">Passing Score: 80% (16/20)</span>'}
+                    <div style="margin-top:32px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+                        ${passed ? '<a href="#/certificate" class="btn btn-primary">🎓 View Certificate</a>' : ''}
+                        <button id="retake-quiz-btn" class="btn btn-primary">🔄 Retake Assessment</button>
+                        <a href="#/" class="btn btn-secondary">Dashboard</a>
+                    </div>
+                </div>`;
+            document.getElementById('retake-quiz-btn')?.addEventListener('click', () => {
+                cur = 0;
+                score = 0;
+                renderQ();
+            });
+            showToast(`Quiz: ${pct}% — +${score*50} pts awarded`, passed ? 'success' : 'info');
         }
 
         renderQ();

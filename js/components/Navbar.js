@@ -84,9 +84,15 @@ export const Navbar = {
                     </div>
                     <a href="#/settings" class="btn btn-secondary btn-sm mb-8" style="width:100%;justify-content:flex-start">⚙️ Settings & Profile</a>
                     <a href="#/certificate" class="btn btn-secondary btn-sm mb-8" style="width:100%;justify-content:flex-start">🎓 View Certificate</a>
-                    <button id="nav-signout-btn" class="btn btn-danger btn-sm" style="width:100%;justify-content:flex-start">🚪 Sign Out</button>
+                    <button id="nav-signout-btn" class="btn btn-danger btn-sm signout-trigger" style="width:100%;justify-content:flex-start">🚪 Sign Out</button>
                 </div>
             </div>
+
+            <!-- Direct Quick Sign Out Button -->
+            <button class="btn btn-secondary btn-sm signout-trigger" id="nav-direct-signout" title="Sign Out of Session" style="gap:6px;padding:6px 12px;color:var(--danger);border-color:rgba(255,51,102,0.3);margin-left:4px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                <span>Sign Out</span>
+            </button>
         </div>`;
     },
 
@@ -114,11 +120,14 @@ export const Navbar = {
             }
         });
 
-        document.getElementById('nav-signout-btn')?.addEventListener('click', async () => {
+        const performSignOut = async (e) => {
+            e?.stopPropagation();
             await signOut();
             showToast('Signed out of National Cyber Defense platform', 'info');
-            window.location.hash = '#/login';
-        });
+        };
+
+        document.getElementById('nav-signout-btn')?.addEventListener('click', performSignOut);
+        document.getElementById('nav-direct-signout')?.addEventListener('click', performSignOut);
 
         // Close dropdowns on outside click
         document.addEventListener('click', () => {

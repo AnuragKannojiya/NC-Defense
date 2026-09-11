@@ -180,17 +180,25 @@ export async function signInDemo() {
 export async function signOut() {
     _demoUser = null;
     localStorage.removeItem('ncd_demo_user');
+    try {
+        sessionStorage.clear();
+    } catch (e) {
+        console.warn('Session clear warning:', e);
+    }
 
     try {
+        await ensureFirebase();
         if (_fbAuth) {
             const { signOut: fbSignOut } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
             await fbSignOut(_fbAuth);
         }
     } catch (e) {
-        console.warn('Sign out warning:', e);
+        console.warn('Firebase sign out warning:', e);
     }
 
-    if (_onAuthChangeCb) _onAuthChangeCb(null);
+    if (_onAuthChangeCb) {
+        _onAuthChangeCb(null);
+    }
 }
 
 export function getCurrentUser() {

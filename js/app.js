@@ -1,26 +1,26 @@
 // =====================================================================
 // NCD Platform — Core Application (Router, Auth, Particles)
 // =====================================================================
-import { initFirebaseAuth, getCurrentUser } from './services/auth.js?v=11';
-import { getUserProfile, createUserProfile, updateUserProfile } from './services/db.js?v=11';
-import { Sidebar } from './components/Sidebar.js?v=11';
-import { Navbar } from './components/Navbar.js?v=11';
-import { showToast } from './components/Toast.js?v=11';
+import { initFirebaseAuth, getCurrentUser, signOut } from './services/auth.js?v=12';
+import { getUserProfile, createUserProfile, updateUserProfile } from './services/db.js?v=12';
+import { Sidebar } from './components/Sidebar.js?v=12';
+import { Navbar } from './components/Navbar.js?v=12';
+import { showToast } from './components/Toast.js?v=12';
 
 // Views
-import { Login } from './views/Login.js?v=11';
-import { Register } from './views/Register.js?v=11';
-import { Dashboard } from './views/Dashboard.js?v=11';
-import { TrainingHub } from './views/TrainingHub.js?v=11';
-import { TrainingModule } from './views/TrainingModule.js?v=11';
-import { Simulation } from './views/Simulation.js?v=11';
-import { Quiz } from './views/Quiz.js?v=11';
-import { Leaderboard } from './views/Leaderboard.js?v=11';
-import { Analytics } from './views/Analytics.js?v=11';
-import { Reports } from './views/Reports.js?v=11';
-import { Certificate } from './views/Certificate.js?v=11';
-import { Admin } from './views/Admin.js?v=11';
-import { Settings } from './views/Settings.js?v=11';
+import { Login } from './views/Login.js?v=12';
+import { Register } from './views/Register.js?v=12';
+import { Dashboard } from './views/Dashboard.js?v=12';
+import { TrainingHub } from './views/TrainingHub.js?v=12';
+import { TrainingModule } from './views/TrainingModule.js?v=12';
+import { Simulation } from './views/Simulation.js?v=12';
+import { Quiz } from './views/Quiz.js?v=12';
+import { Leaderboard } from './views/Leaderboard.js?v=12';
+import { Analytics } from './views/Analytics.js?v=12';
+import { Reports } from './views/Reports.js?v=12';
+import { Certificate } from './views/Certificate.js?v=12';
+import { Admin } from './views/Admin.js?v=12';
+import { Settings } from './views/Settings.js?v=12';
 
 // Global error handlers
 window.onerror = function(message, source, lineno, colno, error) {
@@ -76,24 +76,8 @@ async function navigate() {
         const path = getPath();
         const isAuthRoute = ['/login', '/register'].includes(path);
 
-        // Ensure logged-in users don't see login page again
-        if (currentUser && isAuthRoute) {
-            window.location.hash = '#/';
-            isNavigating = false;
-            return;
-        }
-
-        const authRequired = !isAuthRoute;
-
-        // Auth guard
-        if (authRequired && !currentUser) {
-            window.location.hash = '#/login';
-            isNavigating = false;
-            return;
-        }
-
-        if (!authRequired) {
-            // Show auth container
+        // Auth guard: If user is not logged in, immediately show login/register view
+        if (!currentUser) {
             document.getElementById('app').style.display = 'none';
             const authContainer = document.getElementById('auth-container');
             authContainer.style.display = 'flex';
@@ -117,6 +101,9 @@ async function navigate() {
                     }
                 });
             } else {
+                if (window.location.hash !== '#/login') {
+                    window.location.hash = '#/login';
+                }
                 authContainer.innerHTML = Login.render();
                 Login.afterRender(async () => {
                     const user = getCurrentUser();
@@ -143,7 +130,14 @@ async function navigate() {
             return;
         }
 
-        // Active Session: Refresh profile in background
+        // If user is logged in but navigating to auth route, send to dashboard
+        if (currentUser && isAuthRoute) {
+            window.location.hash = '#/';
+            isNavigating = false;
+            return;
+        }
+
+        // Active Session: Refresh profile in background if missing
         if (currentUser && (!userProfile || !userProfile.uid)) {
             userProfile = await getUserProfile(currentUser.uid);
             if (!userProfile) {
@@ -320,10 +314,29 @@ function initParticles() {
 }
 
 // =====================================================================
-// BOOT SEQUENCE
+// BOOT SEQUENCE & GLOBAL LISTENERS
 // =====================================================================
 async function boot() {
     initParticles();
+
+    // Universal Sign Out Delegated Click Handler
+    document.addEventListener('click', async (e) => {
+        const signoutBtn = e.target.closest('.signout-trigger, #sidebar-signout-btn, #nav-signout-btn, #nav-direct-signout, #signout-btn');
+        if (signoutBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            currentUser = null;
+            userProfile = null;
+            try {
+                await signOut();
+            } catch (err) {
+                console.warn('Sign out warning:', err);
+            }
+            showToast('Signed out of National Cyber Defense platform', 'info');
+            window.location.hash = '#/login';
+            await navigate();
+        }
+    });
 
     // Listen for hash changes
     window.addEventListener('hashchange', () => {

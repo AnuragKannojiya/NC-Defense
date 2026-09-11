@@ -49,9 +49,7 @@ export const Settings = {
     afterRender: () => {
         document.getElementById('signout-btn')?.addEventListener('click', async () => {
             await signOut();
-            showToast('Signed out', 'info');
-            window.location.hash = '#/login';
-            window.location.reload();
+            showToast('Signed out of National Cyber Defense platform', 'info');
         });
         document.getElementById('reset-btn')?.addEventListener('click', () => {
             if (confirm('⚠️ Delete ALL data? This cannot be undone.')) {

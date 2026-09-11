@@ -1,26 +1,26 @@
 // =====================================================================
 // NCD Platform — Core Application (Router, Auth, Particles)
 // =====================================================================
-import { initFirebaseAuth, getCurrentUser, signOut } from './services/auth.js?v=12';
-import { getUserProfile, createUserProfile, updateUserProfile } from './services/db.js?v=12';
-import { Sidebar } from './components/Sidebar.js?v=12';
-import { Navbar } from './components/Navbar.js?v=12';
-import { showToast } from './components/Toast.js?v=12';
+import { initFirebaseAuth, getCurrentUser, signOut } from './services/auth.js?v=13';
+import { getUserProfile, createUserProfile, updateUserProfile } from './services/db.js?v=13';
+import { Sidebar } from './components/Sidebar.js?v=13';
+import { Navbar } from './components/Navbar.js?v=13';
+import { showToast } from './components/Toast.js?v=13';
 
 // Views
-import { Login } from './views/Login.js?v=12';
-import { Register } from './views/Register.js?v=12';
-import { Dashboard } from './views/Dashboard.js?v=12';
-import { TrainingHub } from './views/TrainingHub.js?v=12';
-import { TrainingModule } from './views/TrainingModule.js?v=12';
-import { Simulation } from './views/Simulation.js?v=12';
-import { Quiz } from './views/Quiz.js?v=12';
-import { Leaderboard } from './views/Leaderboard.js?v=12';
-import { Analytics } from './views/Analytics.js?v=12';
-import { Reports } from './views/Reports.js?v=12';
-import { Certificate } from './views/Certificate.js?v=12';
-import { Admin } from './views/Admin.js?v=12';
-import { Settings } from './views/Settings.js?v=12';
+import { Login } from './views/Login.js?v=13';
+import { Register } from './views/Register.js?v=13';
+import { Dashboard } from './views/Dashboard.js?v=13';
+import { TrainingHub } from './views/TrainingHub.js?v=13';
+import { TrainingModule } from './views/TrainingModule.js?v=13';
+import { Simulation } from './views/Simulation.js?v=13';
+import { Quiz } from './views/Quiz.js?v=13';
+import { Leaderboard } from './views/Leaderboard.js?v=13';
+import { Analytics } from './views/Analytics.js?v=13';
+import { Reports } from './views/Reports.js?v=13';
+import { Certificate } from './views/Certificate.js?v=13';
+import { Admin } from './views/Admin.js?v=13';
+import { Settings } from './views/Settings.js?v=13';
 
 // Global error handlers
 window.onerror = function(message, source, lineno, colno, error) {
@@ -60,6 +60,87 @@ let userProfile = null;
 let isNavigating = false;
 
 // =====================================================================
+// FIRST-TIME GOOGLE ONBOARDING UI
+// =====================================================================
+function renderGoogleOnboarding(container, user, onComplete) {
+    const isAdmin = user.email === 'anuragkannaujiyak@gmail.com';
+    container.innerHTML = `
+    <div class="auth-page">
+        <div class="auth-card fade-in-up" style="max-width:500px;">
+            <div class="auth-logo">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 22S2 16 2 8V5L12 2L22 5V8C22 16 12 22 12 22Z" stroke="url(#gOnb)" stroke-width="1.5"/>
+                    <path d="M9 12l2 2 4-4" stroke="url(#gOnb)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs><linearGradient id="gOnb" x1="2" y1="2" x2="22" y2="22"><stop stop-color="#00F0FF"/><stop offset="1" stop-color="#7C3AED"/></linearGradient></defs>
+                </svg>
+            </div>
+            <h1 class="auth-title">Agent Onboarding</h1>
+            <p class="auth-subtitle">Configure your tactical unit and clearance credentials</p>
+
+            <form id="onboarding-form" class="auth-form" style="margin-top:20px;">
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" class="form-input" id="onb-name" value="${user.displayName || user.email?.split('@')[0] || ''}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Verified Google Email</label>
+                    <input type="email" class="form-input" value="${user.email || ''}" disabled style="opacity:0.75;background:rgba(255,255,255,0.03);">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Designated Department / Unit</label>
+                    <select class="form-select" id="onb-dept" required>
+                        <option value="Cyber Operations" selected>Cyber Operations Division</option>
+                        <option value="Threat Intelligence">Threat Intelligence Unit</option>
+                        <option value="SOC Division">Security Operations Center (SOC)</option>
+                        <option value="Network Defense">Network Defense & Perimeter</option>
+                        <option value="Forensics Lab">Digital Forensics Lab</option>
+                        <option value="Policy & Compliance">National Policy & Compliance</option>
+                        <option value="Finance Infra">Critical Financial Infrastructure</option>
+                        <option value="Administration">Strategic Administration</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Operational Role & Clearance Level</label>
+                    <select class="form-select" id="onb-role" required>
+                        <option value="employee" ${isAdmin ? '' : 'selected'}>Special Agent — Level 2 (Secret)</option>
+                        <option value="manager">Operations Supervisor — Level 2 (Secret)</option>
+                        <option value="admin" ${isAdmin ? 'selected' : ''}>Lead Commander / Admin — Level 3 (Top Secret)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg auth-submit" style="margin-top:10px;">
+                    🛡️ Confirm Security Clearance & Enter Platform
+                </button>
+            </form>
+        </div>
+        <div class="auth-footer">🛡️ National Cyber Defense • Google OAuth Authenticated Session</div>
+    </div>
+    `;
+
+    document.getElementById('onboarding-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Activating Security Clearance...';
+        }
+        const name = document.getElementById('onb-name')?.value.trim();
+        const department = document.getElementById('onb-dept')?.value;
+        const role = document.getElementById('onb-role')?.value;
+        const clearance = role === 'admin' ? 'Level 3 (Top Secret)' : 'Level 2 (Secret)';
+
+        await onComplete({
+            displayName: name || user.displayName || 'Special Agent',
+            name: name || user.displayName || 'Special Agent',
+            email: user.email || '',
+            department,
+            role,
+            photoURL: user.photoURL || null,
+            clearance
+        });
+    });
+}
+
+// =====================================================================
 // ROUTER
 // =====================================================================
 function getPath() {
@@ -95,7 +176,7 @@ async function navigate() {
                             department: regData.department,
                             role: regData.role,
                             photoURL: null,
-                            clearance: 'Level 2 (Secret)'
+                            clearance: regData.role === 'admin' ? 'Level 3 (Top Secret)' : 'Level 2 (Secret)'
                         });
                         window.location.hash = '#/';
                     }
@@ -111,15 +192,14 @@ async function navigate() {
                         currentUser = user;
                         userProfile = await getUserProfile(user.uid);
                         if (!userProfile) {
-                            userProfile = await createUserProfile(user.uid, {
-                                displayName: user.displayName || user.email?.split('@')[0] || 'Special Agent',
-                                name: user.displayName || user.email?.split('@')[0] || 'Special Agent',
-                                email: user.email || '',
-                                department: user.department || 'Cyber Operations',
-                                role: user.role || 'employee',
-                                photoURL: user.photoURL || null,
-                                clearance: 'Level 2 (Secret)'
+                            // First time login: Prompt for role and department!
+                            renderGoogleOnboarding(authContainer, user, async (profileData) => {
+                                userProfile = await createUserProfile(user.uid, profileData);
+                                showToast(`Welcome to National Cyber Defense, ${profileData.displayName}!`, 'success');
+                                window.location.hash = '#/';
+                                await navigate();
                             });
+                            return;
                         }
                         window.location.hash = '#/';
                     }
@@ -130,27 +210,30 @@ async function navigate() {
             return;
         }
 
+        // If user is logged in but hasn't completed onboarding yet
+        if (currentUser && !userProfile) {
+            userProfile = await getUserProfile(currentUser.uid);
+            if (!userProfile) {
+                document.getElementById('app').style.display = 'none';
+                const authContainer = document.getElementById('auth-container');
+                authContainer.style.display = 'flex';
+                renderGoogleOnboarding(authContainer, currentUser, async (profileData) => {
+                    userProfile = await createUserProfile(currentUser.uid, profileData);
+                    showToast(`Welcome to National Cyber Defense, ${profileData.displayName}!`, 'success');
+                    window.location.hash = '#/';
+                    await navigate();
+                });
+                hideLoadingScreen();
+                isNavigating = false;
+                return;
+            }
+        }
+
         // If user is logged in but navigating to auth route, send to dashboard
         if (currentUser && isAuthRoute) {
             window.location.hash = '#/';
             isNavigating = false;
             return;
-        }
-
-        // Active Session: Refresh profile in background if missing
-        if (currentUser && (!userProfile || !userProfile.uid)) {
-            userProfile = await getUserProfile(currentUser.uid);
-            if (!userProfile) {
-                userProfile = await createUserProfile(currentUser.uid, {
-                    displayName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Special Agent',
-                    name: currentUser.displayName || currentUser.email?.split('@')[0] || 'Special Agent',
-                    email: currentUser.email || '',
-                    department: 'Cyber Operations',
-                    role: 'Special Agent',
-                    photoURL: currentUser.photoURL || null,
-                    clearance: 'Level 2 (Secret)'
-                });
-            }
         }
 
         // Show app shell
@@ -349,18 +432,21 @@ async function boot() {
             currentUser = user;
             if (user) {
                 userProfile = await getUserProfile(user.uid);
-                if (!userProfile) {
-                    userProfile = await createUserProfile(user.uid, {
-                        displayName: user.displayName || user.email?.split('@')[0] || 'Special Agent',
-                        name: user.displayName || user.email?.split('@')[0] || 'Special Agent',
-                        email: user.email || '',
-                        department: 'Cyber Operations',
-                        role: 'Special Agent',
-                        photoURL: user.photoURL || null,
-                        clearance: 'Level 2 (Secret)'
-                    });
-                }
                 const curPath = getPath();
+                if (!userProfile) {
+                    // Requires first-time onboarding!
+                    document.getElementById('app').style.display = 'none';
+                    const authContainer = document.getElementById('auth-container');
+                    authContainer.style.display = 'flex';
+                    renderGoogleOnboarding(authContainer, user, async (profileData) => {
+                        userProfile = await createUserProfile(user.uid, profileData);
+                        showToast(`Welcome to National Cyber Defense, ${profileData.displayName}!`, 'success');
+                        window.location.hash = '#/';
+                        await navigate();
+                    });
+                    hideLoadingScreen();
+                    return;
+                }
                 if (curPath === '/login' || curPath === '/register' || curPath === '') {
                     window.location.hash = '#/';
                 } else {

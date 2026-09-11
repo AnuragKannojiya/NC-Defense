@@ -1,26 +1,26 @@
 // =====================================================================
 // NCD Platform — Core Application (Router, Auth, Particles)
 // =====================================================================
-import { initFirebaseAuth, getCurrentUser } from './services/auth.js?v=8';
-import { getUserProfile, createUserProfile, updateUserProfile } from './services/db.js?v=8';
-import { Sidebar } from './components/Sidebar.js?v=8';
-import { Navbar } from './components/Navbar.js?v=8';
-import { showToast } from './components/Toast.js?v=8';
+import { initFirebaseAuth, getCurrentUser } from './services/auth.js?v=9';
+import { getUserProfile, createUserProfile, updateUserProfile } from './services/db.js?v=9';
+import { Sidebar } from './components/Sidebar.js?v=9';
+import { Navbar } from './components/Navbar.js?v=9';
+import { showToast } from './components/Toast.js?v=9';
 
 // Views
-import { Login } from './views/Login.js?v=8';
-import { Register } from './views/Register.js?v=8';
-import { Dashboard } from './views/Dashboard.js?v=8';
-import { TrainingHub } from './views/TrainingHub.js?v=8';
-import { TrainingModule } from './views/TrainingModule.js?v=8';
-import { Simulation } from './views/Simulation.js?v=8';
-import { Quiz } from './views/Quiz.js?v=8';
-import { Leaderboard } from './views/Leaderboard.js?v=8';
-import { Analytics } from './views/Analytics.js?v=8';
-import { Reports } from './views/Reports.js?v=8';
-import { Certificate } from './views/Certificate.js?v=8';
-import { Admin } from './views/Admin.js?v=8';
-import { Settings } from './views/Settings.js?v=8';
+import { Login } from './views/Login.js?v=9';
+import { Register } from './views/Register.js?v=9';
+import { Dashboard } from './views/Dashboard.js?v=9';
+import { TrainingHub } from './views/TrainingHub.js?v=9';
+import { TrainingModule } from './views/TrainingModule.js?v=9';
+import { Simulation } from './views/Simulation.js?v=9';
+import { Quiz } from './views/Quiz.js?v=9';
+import { Leaderboard } from './views/Leaderboard.js?v=9';
+import { Analytics } from './views/Analytics.js?v=9';
+import { Reports } from './views/Reports.js?v=9';
+import { Certificate } from './views/Certificate.js?v=9';
+import { Admin } from './views/Admin.js?v=9';
+import { Settings } from './views/Settings.js?v=9';
 
 window.onerror = function(message, source, lineno, colno, error) {
     console.error('Global Error:', message, error);

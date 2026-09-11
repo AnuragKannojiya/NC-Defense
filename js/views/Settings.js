@@ -30,6 +30,20 @@ export const Settings = {
                 </div>
             </div>
         </div>
+        <div class="card fade-in-up mt-24">
+            <h3 class="mb-16">Cloud Backend & OAuth Configuration</h3>
+            <div style="font-size:0.85rem;color:var(--text-secondary);line-height:1.6;margin-bottom:16px;">
+                Connected Project: <strong style="color:var(--accent-cyan);font-family:var(--font-mono)">anup-bfc5f</strong> • 
+                Realtime Firestore: <span class="badge badge-info">Active</span> • 
+                Google OAuth: <span class="badge badge-success">Enabled</span>
+            </div>
+            <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px;">
+                To enable Google OAuth and Firestore on a new Firebase project, ensure Email/Password and Google providers are enabled in Firebase Console and your domain is in Authorized Domains.
+            </div>
+            <a href="https://console.firebase.google.com/project/anup-bfc5f/authentication/providers" target="_blank" class="btn btn-secondary btn-sm" style="display:inline-flex;align-items:center;gap:6px">
+                Open Firebase Authentication Console ↗
+            </a>
+        </div>
         <div class="card fade-in-up mt-24"><h3 class="mb-16">Account Actions</h3><div style="display:flex;gap:12px;flex-wrap:wrap"><button class="btn btn-secondary" id="signout-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Sign Out</button><button class="btn btn-danger" id="reset-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> Reset All Data</button></div></div>`;
     },
     afterRender: () => {

@@ -1,177 +1,166 @@
 // =====================================================================
-// Auth Service — Complete Google & Email Authentication System
+// Auth Service — Real Firebase OAuth & Email Authentication
 // =====================================================================
 import { FIREBASE_CONFIGURED, firebaseConfig } from '../config-firebase.js';
 
-const USERS_STORE_KEY = 'ncd_registered_users';
-const SESSION_STORE_KEY = 'ncd_session_user';
-const LEGACY_DEMO_KEY = 'ncd_demo_user';
+let _fbApp = null;
+let _fbAuth = null;
+let _GoogleProvider = null;
+let _demoUser = null;
+let _onAuthChangeCb = null;
 
-// Helper to access registered accounts
-function getRegisteredUsers() {
+// ---- Bootstrap Firebase SDK dynamically from CDN ----
+async function ensureFirebase() {
+    if (_fbAuth) return _fbAuth;
     try {
-        return JSON.parse(localStorage.getItem(USERS_STORE_KEY) || '{}');
-    } catch {
-        return {};
+        const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+        const { getAuth, GoogleAuthProvider } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+        
+        _fbApp = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+        _fbAuth = getAuth(_fbApp);
+        _GoogleProvider = new GoogleAuthProvider();
+        _GoogleProvider.setCustomParameters({ prompt: 'select_account' });
+        return _fbAuth;
+    } catch (err) {
+        console.error('Failed to initialize Firebase Auth SDK:', err);
+        throw new Error('Could not load Firebase Authentication library. Please check your internet connection.');
     }
 }
 
-function saveRegisteredUsers(users) {
-    localStorage.setItem(USERS_STORE_KEY, JSON.stringify(users));
+// Friendly error message translator for Firebase codes
+function translateFirebaseError(err) {
+    const code = err.code || '';
+    if (code === 'auth/configuration-not-found') {
+        return 'Firebase Auth is not enabled in your Google Cloud / Firebase console for project "' + firebaseConfig.projectId + '". Please enable Email/Password & Google in Firebase Console > Authentication > Sign-in method.';
+    }
+    if (code === 'auth/unauthorized-domain') {
+        return 'This domain (' + window.location.hostname + ') is not authorized for OAuth in Firebase Console. Add it in Firebase Console > Authentication > Settings > Authorized Domains.';
+    }
+    if (code === 'auth/popup-closed-by-user') {
+        return 'Google sign-in popup was closed before completing.';
+    }
+    if (code === 'auth/popup-blocked') {
+        return 'The Google sign-in popup was blocked by your browser. Please allow popups for this site.';
+    }
+    if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        return 'Invalid email or password. Please verify your credentials.';
+    }
+    if (code === 'auth/user-not-found') {
+        return 'No account found with this email. Please register first.';
+    }
+    if (code === 'auth/email-already-in-use') {
+        return 'An account with this email already exists. Please sign in instead.';
+    }
+    if (code === 'auth/weak-password') {
+        return 'Password must be at least 6 characters long.';
+    }
+    return err.message || 'Authentication failed. Please try again.';
 }
-
-// Session state
-let _currentUser = null;
-let _onAuthChangeCb = null;
 
 // ---- Exported Authentication API ----
 
 export async function initFirebaseAuth(callback) {
     _onAuthChangeCb = callback;
 
-    // Check for existing session
-    const sessionStr = localStorage.getItem(SESSION_STORE_KEY) || localStorage.getItem(LEGACY_DEMO_KEY);
-    if (sessionStr) {
+    // Check for active demo session first
+    const demoSaved = localStorage.getItem('ncd_demo_user');
+    if (demoSaved) {
         try {
-            _currentUser = JSON.parse(sessionStr);
-            callback(_currentUser);
+            _demoUser = JSON.parse(demoSaved);
+            callback(_demoUser);
             return;
         } catch {
-            localStorage.removeItem(SESSION_STORE_KEY);
-            localStorage.removeItem(LEGACY_DEMO_KEY);
+            localStorage.removeItem('ncd_demo_user');
         }
     }
 
-    callback(null);
+    if (!FIREBASE_CONFIGURED) {
+        callback(null);
+        return;
+    }
+
+    try {
+        await ensureFirebase();
+        const { onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+        onAuthStateChanged(_fbAuth, (user) => {
+            if (user) {
+                _demoUser = null;
+                localStorage.removeItem('ncd_demo_user');
+                callback(user);
+            } else if (_demoUser) {
+                callback(_demoUser);
+            } else {
+                callback(null);
+            }
+        });
+    } catch (err) {
+        console.warn('Realtime Firebase Auth listener error:', err);
+        callback(_demoUser || null);
+    }
 }
 
+// Real Google OAuth 2.0 via Firebase popup
+export async function signInWithGoogle() {
+    try {
+        await ensureFirebase();
+        const { signInWithPopup } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+        const cred = await signInWithPopup(_fbAuth, _GoogleProvider);
+        localStorage.removeItem('ncd_demo_user');
+        _demoUser = null;
+        if (_onAuthChangeCb) _onAuthChangeCb(cred.user);
+        return cred.user;
+    } catch (err) {
+        console.error('Google OAuth error:', err);
+        throw new Error(translateFirebaseError(err));
+    }
+}
+
+// Real Email & Password Sign In
 export async function signInWithEmail(email, password) {
-    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanEmail = (email || '').trim();
     if (!cleanEmail) throw new Error('Please enter a valid email address.');
     if (!password) throw new Error('Please enter your password.');
 
-    const users = getRegisteredUsers();
-    const existing = users[cleanEmail];
-
-    if (existing) {
-        // Validate password
-        if (existing.password && existing.password !== password) {
-            throw new Error('Incorrect password. Please verify your credentials or register a new account.');
-        }
-        _currentUser = {
-            uid: existing.uid || ('user_' + btoa(cleanEmail).replace(/[^a-z0-9]/gi, '').slice(0, 16)),
-            email: cleanEmail,
-            displayName: existing.name || cleanEmail.split('@')[0],
-            department: existing.department || 'Cyber Operations',
-            role: existing.role || 'employee',
-            photoURL: existing.photoURL || null
-        };
-    } else {
-        // Auto-provision new account if not explicitly registered
-        const displayName = cleanEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        _currentUser = {
-            uid: 'user_' + btoa(cleanEmail).replace(/[^a-z0-9]/gi, '').slice(0, 16),
-            email: cleanEmail,
-            displayName: displayName,
-            department: 'Cyber Operations',
-            role: 'employee',
-            photoURL: null
-        };
-        // Register in local directory
-        users[cleanEmail] = {
-            ..._currentUser,
-            name: displayName,
-            password: password,
-            createdAt: new Date().toISOString()
-        };
-        saveRegisteredUsers(users);
+    try {
+        await ensureFirebase();
+        const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+        const cred = await signInWithEmailAndPassword(_fbAuth, cleanEmail, password);
+        localStorage.removeItem('ncd_demo_user');
+        _demoUser = null;
+        if (_onAuthChangeCb) _onAuthChangeCb(cred.user);
+        return cred.user;
+    } catch (err) {
+        console.error('Email sign in error:', err);
+        throw new Error(translateFirebaseError(err));
     }
-
-    // Persist session
-    localStorage.setItem(SESSION_STORE_KEY, JSON.stringify(_currentUser));
-    localStorage.setItem(LEGACY_DEMO_KEY, JSON.stringify(_currentUser));
-
-    if (_onAuthChangeCb) _onAuthChangeCb(_currentUser);
-    return _currentUser;
 }
 
+// Real Email & Password Registration
 export async function signUpWithEmail(email, password, displayName, department = 'Cyber Operations', role = 'employee') {
-    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanEmail = (email || '').trim();
     if (!cleanEmail) throw new Error('Please enter a valid email address.');
     if (!password || password.length < 6) throw new Error('Password must be at least 6 characters.');
 
-    const users = getRegisteredUsers();
-    if (users[cleanEmail]) {
-        throw new Error('An account with this email already exists. Please sign in instead.');
+    try {
+        await ensureFirebase();
+        const { createUserWithEmailAndPassword, updateProfile } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+        const cred = await createUserWithEmailAndPassword(_fbAuth, cleanEmail, password);
+        if (displayName) {
+            await updateProfile(cred.user, { displayName });
+        }
+        localStorage.removeItem('ncd_demo_user');
+        _demoUser = null;
+        if (_onAuthChangeCb) _onAuthChangeCb(cred.user);
+        return cred.user;
+    } catch (err) {
+        console.error('Email registration error:', err);
+        throw new Error(translateFirebaseError(err));
     }
-
-    const name = displayName || cleanEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    const uid = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
-
-    _currentUser = {
-        uid,
-        email: cleanEmail,
-        displayName: name,
-        name: name,
-        department: department,
-        role: role,
-        photoURL: null
-    };
-
-    users[cleanEmail] = {
-        ..._currentUser,
-        password: password,
-        createdAt: new Date().toISOString()
-    };
-    saveRegisteredUsers(users);
-
-    // Persist session
-    localStorage.setItem(SESSION_STORE_KEY, JSON.stringify(_currentUser));
-    localStorage.setItem(LEGACY_DEMO_KEY, JSON.stringify(_currentUser));
-
-    if (_onAuthChangeCb) _onAuthChangeCb(_currentUser);
-    return _currentUser;
 }
 
-export async function signInWithGoogle(googleProfile = null) {
-    const profile = googleProfile || {
-        name: 'Anurag Kannojiya',
-        email: 'anuragkannaujiya6@gmail.com',
-        photoURL: 'https://avatars.githubusercontent.com/u/144708033?v=4'
-    };
-
-    const cleanEmail = profile.email.toLowerCase();
-    const uid = 'google_' + btoa(cleanEmail).replace(/[^a-z0-9]/gi, '').slice(0, 16);
-
-    _currentUser = {
-        uid,
-        email: cleanEmail,
-        displayName: profile.name,
-        name: profile.name,
-        department: profile.department || 'National Cyber Defense Command',
-        role: profile.role || 'administrator',
-        photoURL: profile.photoURL || 'https://lh3.googleusercontent.com/a/default-user',
-        authProvider: 'google.com'
-    };
-
-    // Store in users registry
-    const users = getRegisteredUsers();
-    users[cleanEmail] = {
-        ..._currentUser,
-        lastActive: new Date().toISOString()
-    };
-    saveRegisteredUsers(users);
-
-    // Save session
-    localStorage.setItem(SESSION_STORE_KEY, JSON.stringify(_currentUser));
-    localStorage.setItem(LEGACY_DEMO_KEY, JSON.stringify(_currentUser));
-
-    if (_onAuthChangeCb) _onAuthChangeCb(_currentUser);
-    return _currentUser;
-}
-
+// Fast Demo Access
 export async function signInDemo() {
-    _currentUser = {
+    _demoUser = {
         uid: 'demo_agent_' + Date.now(),
         email: 'demo@ncd.gov.in',
         displayName: 'Special Agent (Demo)',
@@ -180,28 +169,29 @@ export async function signInDemo() {
         photoURL: null,
         clearance: 'Level 3 (Secret)'
     };
-    localStorage.setItem(SESSION_STORE_KEY, JSON.stringify(_currentUser));
-    localStorage.setItem(LEGACY_DEMO_KEY, JSON.stringify(_currentUser));
-
-    if (_onAuthChangeCb) _onAuthChangeCb(_currentUser);
-    return _currentUser;
+    localStorage.setItem('ncd_demo_user', JSON.stringify(_demoUser));
+    if (_onAuthChangeCb) _onAuthChangeCb(_demoUser);
+    return _demoUser;
 }
 
+// Sign Out
 export async function signOut() {
-    _currentUser = null;
-    localStorage.removeItem(SESSION_STORE_KEY);
-    localStorage.removeItem(LEGACY_DEMO_KEY);
+    _demoUser = null;
+    localStorage.removeItem('ncd_demo_user');
+
+    try {
+        if (_fbAuth) {
+            const { signOut: fbSignOut } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+            await fbSignOut(_fbAuth);
+        }
+    } catch (e) {
+        console.warn('Sign out warning:', e);
+    }
+
     if (_onAuthChangeCb) _onAuthChangeCb(null);
 }
 
 export function getCurrentUser() {
-    if (_currentUser) return _currentUser;
-    const sessionStr = localStorage.getItem(SESSION_STORE_KEY) || localStorage.getItem(LEGACY_DEMO_KEY);
-    if (sessionStr) {
-        try {
-            _currentUser = JSON.parse(sessionStr);
-            return _currentUser;
-        } catch {}
-    }
-    return null;
+    if (_demoUser) return _demoUser;
+    return _fbAuth?.currentUser || null;
 }

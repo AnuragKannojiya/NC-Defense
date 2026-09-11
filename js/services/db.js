@@ -1,5 +1,5 @@
 // =====================================================================
-// Database Service — Firestore (when configured) + localStorage fallback
+// Database Service — Realtime Cloud Firestore & Live Listeners
 // =====================================================================
 import { FIREBASE_CONFIGURED, firebaseConfig } from '../config-firebase.js';
 
@@ -7,27 +7,47 @@ import { FIREBASE_CONFIGURED, firebaseConfig } from '../config-firebase.js';
 let _db = null;
 
 async function ensureDb() {
-    if (!FIREBASE_CONFIGURED || _db) return;
-    const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
-    const { getFirestore } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-    const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-    _db = getFirestore(app);
+    if (!FIREBASE_CONFIGURED || _db) return _db;
+    try {
+        const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+        const { getFirestore } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+        const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+        _db = getFirestore(app);
+        return _db;
+    } catch (err) {
+        console.warn('Firestore initialization fallback to local storage:', err);
+        return null;
+    }
 }
 
-// ---- localStorage helpers ----
+// ---- localStorage fallback store ----
 const STORE_KEY = 'ncd_db_v3';
-function getStore() { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); }
-function setStore(data) { localStorage.setItem(STORE_KEY, JSON.stringify(data)); }
+function getStore() {
+    try {
+        return JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
+    } catch {
+        return {};
+    }
+}
+function setStore(data) {
+    localStorage.setItem(STORE_KEY, JSON.stringify(data));
+}
 
 // =====================================================================
 // User Profile
 // =====================================================================
 export async function getUserProfile(uid) {
     if (FIREBASE_CONFIGURED) {
-        await ensureDb();
-        const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-        const snap = await getDoc(doc(_db, 'users', uid));
-        return snap.exists() ? { uid, ...snap.data() } : null;
+        try {
+            await ensureDb();
+            if (_db) {
+                const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+                const snap = await getDoc(doc(_db, 'users', uid));
+                if (snap.exists()) return { uid, ...snap.data() };
+            }
+        } catch (e) {
+            console.warn('Firestore getUserProfile fallback:', e);
+        }
     }
     const store = getStore();
     return store.users?.[uid] ? { uid, ...store.users[uid] } : null;
@@ -36,20 +56,26 @@ export async function getUserProfile(uid) {
 export async function createUserProfile(uid, data) {
     const profile = {
         ...data,
-        totalPoints: 0,
-        progress: {},
-        simulations: {},
-        quizScores: [],
-        badges: [],
-        incidents: [],
-        createdAt: new Date().toISOString(),
+        totalPoints: data.totalPoints || 0,
+        progress: data.progress || {},
+        simulations: data.simulations || {},
+        quizScores: data.quizScores || [],
+        badges: data.badges || [],
+        incidents: data.incidents || [],
+        createdAt: data.createdAt || new Date().toISOString(),
         lastActive: new Date().toISOString()
     };
     if (FIREBASE_CONFIGURED) {
-        await ensureDb();
-        const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-        await setDoc(doc(_db, 'users', uid), profile);
-        return { uid, ...profile };
+        try {
+            await ensureDb();
+            if (_db) {
+                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+                await setDoc(doc(_db, 'users', uid), profile, { merge: true });
+                return { uid, ...profile };
+            }
+        } catch (e) {
+            console.warn('Firestore createUserProfile fallback:', e);
+        }
     }
     const store = getStore();
     if (!store.users) store.users = {};
@@ -60,10 +86,16 @@ export async function createUserProfile(uid, data) {
 
 export async function updateUserProfile(uid, updates) {
     if (FIREBASE_CONFIGURED) {
-        await ensureDb();
-        const { doc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-        await updateDoc(doc(_db, 'users', uid), { ...updates, lastActive: new Date().toISOString() });
-        return;
+        try {
+            await ensureDb();
+            if (_db) {
+                const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+                await updateDoc(doc(_db, 'users', uid), { ...updates, lastActive: new Date().toISOString() });
+                return;
+            }
+        } catch (e) {
+            console.warn('Firestore updateUserProfile fallback:', e);
+        }
     }
     const store = getStore();
     if (!store.users) store.users = {};
@@ -80,10 +112,16 @@ export async function completeModule(uid, moduleKey, score = 100) {
         [`progress.${moduleKey}`]: { completed: true, score, completedAt: new Date().toISOString() }
     };
     if (FIREBASE_CONFIGURED) {
-        await ensureDb();
-        const { doc, updateDoc, increment } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-        await updateDoc(doc(_db, 'users', uid), { ...update, totalPoints: increment(250), lastActive: new Date().toISOString() });
-        return await getUserProfile(uid);
+        try {
+            await ensureDb();
+            if (_db) {
+                const { doc, updateDoc, increment } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+                await updateDoc(doc(_db, 'users', uid), { ...update, totalPoints: increment(250), lastActive: new Date().toISOString() });
+                return await getUserProfile(uid);
+            }
+        } catch (e) {
+            console.warn('Firestore completeModule fallback:', e);
+        }
     }
     const store = getStore();
     if (!store.users) store.users = {};
@@ -104,16 +142,22 @@ export async function completeModule(uid, moduleKey, score = 100) {
 // =====================================================================
 export async function saveSimulation(uid, simKey, score) {
     if (FIREBASE_CONFIGURED) {
-        await ensureDb();
-        const { doc, updateDoc, increment } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-        const profile = await getUserProfile(uid);
-        const prev = profile?.simulations?.[simKey]?.attempts || 0;
-        await updateDoc(doc(_db, 'users', uid), {
-            [`simulations.${simKey}`]: { completed: true, score, attempts: prev + 1, lastAttempt: new Date().toISOString() },
-            totalPoints: increment(Math.round(score * 5)),
-            lastActive: new Date().toISOString()
-        });
-        return await getUserProfile(uid);
+        try {
+            await ensureDb();
+            if (_db) {
+                const { doc, updateDoc, increment } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+                const profile = await getUserProfile(uid);
+                const prev = profile?.simulations?.[simKey]?.attempts || 0;
+                await updateDoc(doc(_db, 'users', uid), {
+                    [`simulations.${simKey}`]: { completed: true, score, attempts: prev + 1, lastAttempt: new Date().toISOString() },
+                    totalPoints: increment(Math.round(score * 5)),
+                    lastActive: new Date().toISOString()
+                });
+                return await getUserProfile(uid);
+            }
+        } catch (e) {
+            console.warn('Firestore saveSimulation fallback:', e);
+        }
     }
     const store = getStore();
     if (!store.users) store.users = {};
@@ -136,14 +180,20 @@ export async function saveSimulation(uid, simKey, score) {
 export async function saveQuizScore(uid, quizName, score, total) {
     const entry = { name: quizName, score, total, percentage: Math.round((score / total) * 100), date: new Date().toISOString() };
     if (FIREBASE_CONFIGURED) {
-        await ensureDb();
-        const { doc, updateDoc, arrayUnion, increment } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-        await updateDoc(doc(_db, 'users', uid), {
-            quizScores: arrayUnion(entry),
-            totalPoints: increment(score * 50),
-            lastActive: new Date().toISOString()
-        });
-        return await getUserProfile(uid);
+        try {
+            await ensureDb();
+            if (_db) {
+                const { doc, updateDoc, arrayUnion, increment } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+                await updateDoc(doc(_db, 'users', uid), {
+                    quizScores: arrayUnion(entry),
+                    totalPoints: increment(score * 50),
+                    lastActive: new Date().toISOString()
+                });
+                return await getUserProfile(uid);
+            }
+        } catch (e) {
+            console.warn('Firestore saveQuizScore fallback:', e);
+        }
     }
     const store = getStore();
     if (!store.users) store.users = {};
@@ -165,10 +215,16 @@ export async function saveQuizScore(uid, quizName, score, total) {
 export async function createIncident(uid, incident) {
     const newInc = { ...incident, id: 'inc_' + Date.now(), reportedBy: uid, date: new Date().toISOString(), status: 'open' };
     if (FIREBASE_CONFIGURED) {
-        await ensureDb();
-        const { collection, addDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-        const ref = await addDoc(collection(_db, 'incidents'), newInc);
-        return { ...newInc, id: ref.id };
+        try {
+            await ensureDb();
+            if (_db) {
+                const { collection, addDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+                const ref = await addDoc(collection(_db, 'incidents'), newInc);
+                return { ...newInc, id: ref.id };
+            }
+        } catch (e) {
+            console.warn('Firestore createIncident fallback:', e);
+        }
     }
     const store = getStore();
     if (!store.incidents) store.incidents = [];
@@ -180,11 +236,17 @@ export async function createIncident(uid, incident) {
 
 export async function getIncidents(uid) {
     if (FIREBASE_CONFIGURED) {
-        await ensureDb();
-        const { collection, query, where, getDocs, orderBy } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-        const q = query(collection(_db, 'incidents'), where('reportedBy', '==', uid));
-        const snap = await getDocs(q);
-        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        try {
+            await ensureDb();
+            if (_db) {
+                const { collection, query, where, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+                const q = query(collection(_db, 'incidents'), where('reportedBy', '==', uid));
+                const snap = await getDocs(q);
+                return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            }
+        } catch (e) {
+            console.warn('Firestore getIncidents fallback:', e);
+        }
     }
     const store = getStore();
     return (store.incidents || []).filter(i => i.reportedBy === uid);
@@ -192,13 +254,41 @@ export async function getIncidents(uid) {
 
 export async function getAllIncidents() {
     if (FIREBASE_CONFIGURED) {
-        await ensureDb();
-        const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-        const snap = await getDocs(collection(_db, 'incidents'));
-        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        try {
+            await ensureDb();
+            if (_db) {
+                const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+                const snap = await getDocs(collection(_db, 'incidents'));
+                return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            }
+        } catch (e) {
+            console.warn('Firestore getAllIncidents fallback:', e);
+        }
     }
     const store = getStore();
     return store.incidents || [];
+}
+
+// Real-time Firestore Listeners
+export async function subscribeIncidents(callback) {
+    if (FIREBASE_CONFIGURED) {
+        try {
+            await ensureDb();
+            if (_db) {
+                const { collection, onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+                return onSnapshot(collection(_db, 'incidents'), (snapshot) => {
+                    const incidents = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    callback(incidents);
+                });
+            }
+        } catch (e) {
+            console.warn('Realtime incident listener fallback:', e);
+        }
+    }
+    // Fallback: notify on local changes
+    onDataChange('incidents', () => {
+        callback(getStore().incidents || []);
+    });
 }
 
 // =====================================================================
@@ -222,17 +312,34 @@ const MOCK_USERS = [
 export async function getLeaderboard() {
     let realUsers = [];
     if (FIREBASE_CONFIGURED) {
-        await ensureDb();
-        const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-        const snap = await getDocs(collection(_db, 'users'));
-        realUsers = snap.docs.map(d => {
-            const u = d.data();
-            return { uid: d.id, name: u.displayName || u.name || 'Agent', department: u.department || 'Unassigned', totalPoints: u.totalPoints || 0, modulesCompleted: Object.values(u.progress || {}).filter(p => p.completed).length };
-        });
-    } else {
+        try {
+            await ensureDb();
+            if (_db) {
+                const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+                const snap = await getDocs(collection(_db, 'users'));
+                realUsers = snap.docs.map(d => {
+                    const u = d.data();
+                    return {
+                        uid: d.id,
+                        name: u.displayName || u.name || 'Agent',
+                        department: u.department || 'Unassigned',
+                        totalPoints: u.totalPoints || 0,
+                        modulesCompleted: Object.values(u.progress || {}).filter(p => p.completed).length
+                    };
+                });
+            }
+        } catch (e) {
+            console.warn('Firestore getLeaderboard fallback:', e);
+        }
+    }
+    if (realUsers.length === 0) {
         const store = getStore();
         realUsers = Object.entries(store.users || {}).map(([uid, u]) => ({
-            uid, name: u.displayName || u.name || 'Agent', department: u.department || 'Unassigned', totalPoints: u.totalPoints || 0, modulesCompleted: Object.values(u.progress || {}).filter(p => p.completed).length
+            uid,
+            name: u.displayName || u.name || 'Agent',
+            department: u.department || 'Unassigned',
+            totalPoints: u.totalPoints || 0,
+            modulesCompleted: Object.values(u.progress || {}).filter(p => p.completed).length
         }));
     }
     const all = [...realUsers, ...MOCK_USERS.filter(m => !realUsers.find(r => r.uid === m.uid))];
@@ -240,22 +347,25 @@ export async function getLeaderboard() {
     return all;
 }
 
-// =====================================================================
-// Admin
-// =====================================================================
 export async function getAllUsers() {
     if (FIREBASE_CONFIGURED) {
-        await ensureDb();
-        const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-        const snap = await getDocs(collection(_db, 'users'));
-        return snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+        try {
+            await ensureDb();
+            if (_db) {
+                const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+                const snap = await getDocs(collection(_db, 'users'));
+                return snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+            }
+        } catch (e) {
+            console.warn('Firestore getAllUsers fallback:', e);
+        }
     }
     const store = getStore();
     return Object.entries(store.users || {}).map(([uid, u]) => ({ uid, ...u }));
 }
 
 // =====================================================================
-// Real-time simulation (localStorage only)
+// Real-time Event System
 // =====================================================================
 const _listeners = {};
 export function onDataChange(collection, callback) {
@@ -266,7 +376,7 @@ function _notifyListeners(collection) {
     (_listeners[collection] || []).forEach(cb => cb());
 }
 
-// =====================================================================
-// Reset
-// =====================================================================
-export function resetAllData() { localStorage.removeItem(STORE_KEY); }
+export function resetAllData() {
+    localStorage.removeItem(STORE_KEY);
+    localStorage.removeItem('ncd_demo_user');
+}

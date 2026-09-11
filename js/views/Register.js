@@ -50,9 +50,13 @@ export const Register = {
             const department = document.getElementById('reg-dept').value;
             const role = document.getElementById('reg-role').value;
             try {
-                await signUpWithEmail(email, password, name);
-                showToast('Account created successfully!', 'success');
+                await signUpWithEmail(email, password, name, department, role);
+                showToast(`Account created for ${name}!`, 'success');
                 if (onRegister) onRegister({ name, email, department, role });
+                else {
+                    window.location.hash = '#/';
+                    window.location.reload();
+                }
             } catch (err) {
                 showToast(err.message || 'Registration failed', 'danger');
             }

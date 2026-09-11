@@ -1,26 +1,26 @@
 // =====================================================================
 // NCD Platform — Core Application (Router, Auth, Particles)
 // =====================================================================
-import { initFirebaseAuth, getCurrentUser } from './services/auth.js?v=7';
-import { getUserProfile, createUserProfile, updateUserProfile } from './services/db.js?v=7';
-import { Sidebar } from './components/Sidebar.js?v=7';
-import { Navbar } from './components/Navbar.js?v=7';
-import { showToast } from './components/Toast.js?v=7';
+import { initFirebaseAuth, getCurrentUser } from './services/auth.js?v=8';
+import { getUserProfile, createUserProfile, updateUserProfile } from './services/db.js?v=8';
+import { Sidebar } from './components/Sidebar.js?v=8';
+import { Navbar } from './components/Navbar.js?v=8';
+import { showToast } from './components/Toast.js?v=8';
 
 // Views
-import { Login } from './views/Login.js?v=7';
-import { Register } from './views/Register.js?v=7';
-import { Dashboard } from './views/Dashboard.js?v=7';
-import { TrainingHub } from './views/TrainingHub.js?v=7';
-import { TrainingModule } from './views/TrainingModule.js?v=7';
-import { Simulation } from './views/Simulation.js?v=7';
-import { Quiz } from './views/Quiz.js?v=7';
-import { Leaderboard } from './views/Leaderboard.js?v=7';
-import { Analytics } from './views/Analytics.js?v=7';
-import { Reports } from './views/Reports.js?v=7';
-import { Certificate } from './views/Certificate.js?v=7';
-import { Admin } from './views/Admin.js?v=7';
-import { Settings } from './views/Settings.js?v=7';
+import { Login } from './views/Login.js?v=8';
+import { Register } from './views/Register.js?v=8';
+import { Dashboard } from './views/Dashboard.js?v=8';
+import { TrainingHub } from './views/TrainingHub.js?v=8';
+import { TrainingModule } from './views/TrainingModule.js?v=8';
+import { Simulation } from './views/Simulation.js?v=8';
+import { Quiz } from './views/Quiz.js?v=8';
+import { Leaderboard } from './views/Leaderboard.js?v=8';
+import { Analytics } from './views/Analytics.js?v=8';
+import { Reports } from './views/Reports.js?v=8';
+import { Certificate } from './views/Certificate.js?v=8';
+import { Admin } from './views/Admin.js?v=8';
+import { Settings } from './views/Settings.js?v=8';
 
 window.onerror = function(message, source, lineno, colno, error) {
     console.error('Global Error:', message, error);
@@ -97,7 +97,11 @@ async function navigate() {
                         });
                         currentUser = user;
                         userProfile = await getUserProfile(user.uid);
-                        window.location.hash = '#/';
+                        if (window.location.hash === '#/' || window.location.hash === '') {
+                            await navigate();
+                        } else {
+                            window.location.hash = '#/';
+                        }
                     }
                 });
             } else {
@@ -112,14 +116,18 @@ async function navigate() {
                                 displayName: user.displayName || user.email.split('@')[0],
                                 name: user.displayName || user.email.split('@')[0],
                                 email: user.email,
-                                department: 'Cyber Operations',
-                                role: 'employee',
-                                photoURL: user.photoURL,
+                                department: user.department || 'Cyber Operations',
+                                role: user.role || 'employee',
+                                photoURL: user.photoURL || null,
                                 clearance: 'Level 2'
                             });
                             userProfile = await getUserProfile(user.uid);
                         }
-                        window.location.hash = '#/';
+                        if (window.location.hash === '#/' || window.location.hash === '') {
+                            await navigate();
+                        } else {
+                            window.location.hash = '#/';
+                        }
                     }
                 });
             }

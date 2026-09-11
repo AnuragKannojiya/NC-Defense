@@ -1,5 +1,7 @@
 # National Cyber Defense Platform
 
+🌐 **Live Demo:** [https://anuragkannojiya.github.io/NC-Defense/](https://anuragkannojiya.github.io/NC-Defense/)
+
 The **National Cyber Defense (NCD)** platform is a modern, responsive, single-page web application (SPA) designed for national-scale cybersecurity awareness training, incident reporting, and operational readiness tracking. 
 
 Built using lightweight vanilla web technologies, the platform provides an immersive, enterprise-grade learning environment.

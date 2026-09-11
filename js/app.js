@@ -1,26 +1,26 @@
 // =====================================================================
 // NCD Platform — Core Application (Router, Auth, Particles)
 // =====================================================================
-import { initFirebaseAuth, getCurrentUser } from './services/auth.js?v=6';
-import { getUserProfile, createUserProfile, updateUserProfile } from './services/db.js?v=6';
-import { Sidebar } from './components/Sidebar.js';
-import { Navbar } from './components/Navbar.js';
-import { showToast } from './components/Toast.js';
+import { initFirebaseAuth, getCurrentUser } from './services/auth.js?v=7';
+import { getUserProfile, createUserProfile, updateUserProfile } from './services/db.js?v=7';
+import { Sidebar } from './components/Sidebar.js?v=7';
+import { Navbar } from './components/Navbar.js?v=7';
+import { showToast } from './components/Toast.js?v=7';
 
 // Views
-import { Login } from './views/Login.js';
-import { Register } from './views/Register.js';
-import { Dashboard } from './views/Dashboard.js';
-import { TrainingHub } from './views/TrainingHub.js';
-import { TrainingModule } from './views/TrainingModule.js';
-import { Simulation } from './views/Simulation.js';
-import { Quiz } from './views/Quiz.js';
-import { Leaderboard } from './views/Leaderboard.js';
-import { Analytics } from './views/Analytics.js';
-import { Reports } from './views/Reports.js';
-import { Certificate } from './views/Certificate.js';
-import { Admin } from './views/Admin.js';
-import { Settings } from './views/Settings.js';
+import { Login } from './views/Login.js?v=7';
+import { Register } from './views/Register.js?v=7';
+import { Dashboard } from './views/Dashboard.js?v=7';
+import { TrainingHub } from './views/TrainingHub.js?v=7';
+import { TrainingModule } from './views/TrainingModule.js?v=7';
+import { Simulation } from './views/Simulation.js?v=7';
+import { Quiz } from './views/Quiz.js?v=7';
+import { Leaderboard } from './views/Leaderboard.js?v=7';
+import { Analytics } from './views/Analytics.js?v=7';
+import { Reports } from './views/Reports.js?v=7';
+import { Certificate } from './views/Certificate.js?v=7';
+import { Admin } from './views/Admin.js?v=7';
+import { Settings } from './views/Settings.js?v=7';
 
 window.onerror = function(message, source, lineno, colno, error) {
     console.error('Global Error:', message, error);
@@ -142,12 +142,27 @@ async function navigate() {
         Sidebar.updateActive(path);
         Navbar.update(path);
 
-        // Mobile menu
-        document.getElementById('mobile-menu-toggle')?.addEventListener('click', () => {
+        // Auto-close mobile sidebar upon navigation
+        document.getElementById('sidebar-root')?.classList.remove('sidebar-mobile-open');
+
+        // Mobile menu toggle
+        document.getElementById('mobile-menu-toggle')?.addEventListener('click', (e) => {
+            e.stopPropagation();
             document.getElementById('sidebar-root').classList.toggle('sidebar-mobile-open');
         });
 
-        // Signout from navbar dropdown
+        // Close mobile sidebar on clicking outside
+        document.addEventListener('click', (e) => {
+            const sidebar = document.getElementById('sidebar-root');
+            const toggle = document.getElementById('mobile-menu-toggle');
+            if (sidebar && sidebar.classList.contains('sidebar-mobile-open')) {
+                if (!sidebar.contains(e.target) && !toggle?.contains(e.target)) {
+                    sidebar.classList.remove('sidebar-mobile-open');
+                }
+            }
+        });
+
+        // Navigate to settings from navbar user button
         document.getElementById('nav-user-btn')?.addEventListener('click', () => {
             window.location.hash = '#/settings';
         });

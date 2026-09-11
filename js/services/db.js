@@ -86,10 +86,14 @@ export async function completeModule(uid, moduleKey, score = 100) {
         return await getUserProfile(uid);
     }
     const store = getStore();
-    if (!store.users?.[uid]) return;
+    if (!store.users) store.users = {};
+    if (!store.users[uid]) {
+        store.users[uid] = { totalPoints: 0, progress: {}, simulations: {}, quizScores: [], badges: [], incidents: [], createdAt: new Date().toISOString() };
+    }
     if (!store.users[uid].progress) store.users[uid].progress = {};
     store.users[uid].progress[moduleKey] = { completed: true, score, completedAt: new Date().toISOString() };
     store.users[uid].totalPoints = (store.users[uid].totalPoints || 0) + 250;
+    store.users[uid].lastActive = new Date().toISOString();
     setStore(store);
     _notifyListeners('users');
     return { uid, ...store.users[uid] };
@@ -112,11 +116,15 @@ export async function saveSimulation(uid, simKey, score) {
         return await getUserProfile(uid);
     }
     const store = getStore();
-    if (!store.users?.[uid]) return;
+    if (!store.users) store.users = {};
+    if (!store.users[uid]) {
+        store.users[uid] = { totalPoints: 0, progress: {}, simulations: {}, quizScores: [], badges: [], incidents: [], createdAt: new Date().toISOString() };
+    }
     if (!store.users[uid].simulations) store.users[uid].simulations = {};
     const prev = store.users[uid].simulations[simKey]?.attempts || 0;
     store.users[uid].simulations[simKey] = { completed: true, score, attempts: prev + 1, lastAttempt: new Date().toISOString() };
     store.users[uid].totalPoints = (store.users[uid].totalPoints || 0) + Math.round(score * 5);
+    store.users[uid].lastActive = new Date().toISOString();
     setStore(store);
     _notifyListeners('users');
     return { uid, ...store.users[uid] };
@@ -138,10 +146,14 @@ export async function saveQuizScore(uid, quizName, score, total) {
         return await getUserProfile(uid);
     }
     const store = getStore();
-    if (!store.users?.[uid]) return;
+    if (!store.users) store.users = {};
+    if (!store.users[uid]) {
+        store.users[uid] = { totalPoints: 0, progress: {}, simulations: {}, quizScores: [], badges: [], incidents: [], createdAt: new Date().toISOString() };
+    }
     if (!store.users[uid].quizScores) store.users[uid].quizScores = [];
     store.users[uid].quizScores.push(entry);
     store.users[uid].totalPoints = (store.users[uid].totalPoints || 0) + (score * 50);
+    store.users[uid].lastActive = new Date().toISOString();
     setStore(store);
     _notifyListeners('users');
     return { uid, ...store.users[uid] };

@@ -63,8 +63,8 @@ export const Login = {
                 </div>
                 <p id="cloud-setup-msg" style="color:var(--text-secondary);font-size:0.85rem;line-height:1.6;margin-bottom:20px;"></p>
                 <div style="display:flex;flex-direction:column;gap:10px;">
-                    <a id="cloud-console-link" href="https://console.firebase.google.com/" target="_blank" class="btn btn-primary" style="justify-content:center;">
-                        Open Firebase Console ↗
+                    <a id="cloud-console-link" href="https://console.firebase.google.com/project/anup-bfc5f-cbd76/authentication/providers" target="_blank" class="btn btn-primary" style="justify-content:center;">
+                        Open Firebase Providers Console ↗
                     </a>
                     <button id="cloud-modal-demo-btn" class="btn btn-secondary" style="justify-content:center;">
                         Continue in Demo Mode

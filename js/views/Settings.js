@@ -33,14 +33,14 @@ export const Settings = {
         <div class="card fade-in-up mt-24">
             <h3 class="mb-16">Cloud Backend & OAuth Configuration</h3>
             <div style="font-size:0.85rem;color:var(--text-secondary);line-height:1.6;margin-bottom:16px;">
-                Connected Project: <strong style="color:var(--accent-cyan);font-family:var(--font-mono)">anup-bfc5f</strong> • 
+                Connected Project: <strong style="color:var(--accent-cyan);font-family:var(--font-mono)">anup-bfc5f-cbd76</strong> • 
                 Realtime Firestore: <span class="badge badge-info">Active</span> • 
                 Google OAuth: <span class="badge badge-success">Enabled</span>
             </div>
             <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px;">
-                To enable Google OAuth and Firestore on a new Firebase project, ensure Email/Password and Google providers are enabled in Firebase Console and your domain is in Authorized Domains.
+                To enable Google OAuth and Firestore on your Firebase project, ensure Email/Password and Google providers are enabled in Firebase Console and your domain is in Authorized Domains.
             </div>
-            <a href="https://console.firebase.google.com/project/anup-bfc5f/authentication/providers" target="_blank" class="btn btn-secondary btn-sm" style="display:inline-flex;align-items:center;gap:6px">
+            <a href="https://console.firebase.google.com/project/anup-bfc5f-cbd76/authentication/providers" target="_blank" class="btn btn-secondary btn-sm" style="display:inline-flex;align-items:center;gap:6px">
                 Open Firebase Authentication Console ↗
             </a>
         </div>
